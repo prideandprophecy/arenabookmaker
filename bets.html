@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Place Bets</title>
@@ -20,5 +24,91 @@
         <input type="number" id="amount" name="amount" required>
         <button type="submit">Place Bet</button>
     </form>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyCZyQhh1vnaRZjSoTktEAavXZZvo1F1bOo",
+    authDomain: "the-arena-91895.firebaseapp.com",
+    projectId: "the-arena-91895",
+    storageBucket: "the-arena-91895.appspot.com",
+    messagingSenderId: "427318942598",
+    appId: "1:427318942598:web:ec7499c12c2901d97b2a07",
+    measurementId: "G-MB4NN6YP02"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+<script>
+function placeBet(matchId, odds) {
+  var userId = firebase.auth().currentUser.uid;
+  var amount = prompt('Enter the amount of credits to bet:');
+  var chosenCharacter = prompt('Enter the character you want to bet on (home/away):');
+
+  // Validate the inputs (e.g., check that the amount is a valid number, chosenCharacter is 'home' or 'away', etc.)
+
+  db.collection('Bets').add({
+    amount: Number(amount),
+    chosen_character: chosenCharacter,
+    match_id: matchId,
+    outcome: 'pending',
+    user_id: userId
+  })
+  .then(() => {
+    alert('Bet placed successfully!');
+  })
+  .catch((error) => {
+    alert('Error placing bet: ' + error.message);
+  });
+}
+</script>
+<script>
+function placeBet(matchId, odds) {
+  // ... (existing code to gather bet details)
+
+  // Start a Firestore transaction to update the user's credits and add the bet
+  db.runTransaction((transaction) => {
+    const userRef = db.collection('Users').doc(userId);
+    return transaction.get(userRef).then((userDoc) => {
+      const user = userDoc.data();
+      const newCredits = user.credits - amount;
+
+      // Check that the user has enough credits to place the bet
+      if (newCredits < 0) {
+        alert('Not enough credits to place this bet.');
+        return;
+      }
+
+      // Update the user's credits
+      transaction.update(userRef, { credits: newCredits });
+
+      // Add the bet to the "Bets" collection
+      return db.collection('Bets').add({
+        amount: Number(amount),
+        chosen_character: chosenCharacter,
+        match_id: matchId,
+        outcome: 'pending',
+        user_id: userId
+      });
+    });
+  })
+  .then(() => {
+    alert('Bet placed successfully!');
+  })
+  .catch((error) => {
+    alert('Error placing bet: ' + error.message);
+  });
+}
+
+</script>
 </body>
 </html>
