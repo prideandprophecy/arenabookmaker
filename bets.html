@@ -104,7 +104,7 @@ function populateMatches() {
 
   // Set the date one week from now in CST
   const oneWeekFromNowCST = new Date(currentDate);
-  oneWeekFromNowCST.setDate(currentDate.getDate() + 7);
+  oneWeekFromNowCST.setDate(currentDate.getDate() + 1);
 
   getDocs(collection(db, 'Matches')).then((querySnapshot) => {
     querySnapshot.forEach((doc) => {
