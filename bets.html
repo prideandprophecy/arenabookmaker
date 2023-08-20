@@ -115,13 +115,23 @@ function populateMatches() {
       // Include matches that are within a week from now and not in the past
       if (matchDateCST > currentDate && matchDateCST <= oneWeekFromNowCST) {
         match.id = doc.id; // Store the document ID
+        match.dateCST = matchDateCST; // Store the date in CST
         matches.push(match);
-        matchesSelect.innerHTML += `<option value="${doc.id}">${match.match_name}</option>`;
       }
     });
+
+    // Sort the matches by date and time, from most recent to furthest away
+    matches.sort((a, b) => a.dateCST - b.dateCST);
+
+    // Populate the dropdown with the sorted matches
+    matches.forEach(match => {
+      matchesSelect.innerHTML += `<option value="${match.id}">${match.match_name}</option>`;
+    });
+
     populateTeams(); // Populate teams for the selected match
   });
 }
+
 
 
 
