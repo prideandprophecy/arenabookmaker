@@ -19,14 +19,14 @@
     </div>
     
     <form id="bet-form">
-        <label for="match">Select Match:</label>
+        <p><label for="match">Select Match:</label>
         <select id="match" name="match" required onchange="populateTeams()">
             <!-- Options for matches will be populated here -->
-        </select>
-        <label for="team">Select Winner:</label>
+        </select></p>
+        <p><label for="team">Select Winner:</label>
         <select id="team" name="team" required onchange="calculateWinnings()">
             <!-- Options for teams will be populated here -->
-        </select>
+        </select></p>
         <label for="amount">Wager Amount:</label>
         <input type="number" id="amount" name="amount" required oninput="calculateWinnings()">
         <p>Projected Winnings: <span id="projected-winnings"></span></p>
