@@ -1,39 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Place Bets</title>
+    <title>The Bookmaker: Place Wagers</title>
+<link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
-    <h1>Place Your Bets</h1>
+    <div>
+        <a href="account.html"><p>Username: <span id="username"></span></p></a>
+        <p>Gold: <span id="credits"></span></p>
+	<a href="admin.html"><p><span id="admin"></span></p></a>
+    </div>
+    <h1>Make Your Wagers</h1>
     <form id="bet-form">
         <label for="match">Select Match:</label>
-        <select id="match" name="match" required>
+        <select id="match" name="match" required onchange="populateTeams()">
             <!-- Options for matches will be populated here -->
         </select>
-        <label for="team">Select Team:</label>
-        <select id="team" name="team" required>
+        <label for="team">Select Winner:</label>
+        <select id="team" name="team" required onchange="calculateWinnings()">
             <!-- Options for teams will be populated here -->
         </select>
-        <label for="amount">Bet Amount:</label>
-        <input type="number" id="amount" name="amount" required>
-        <button type="submit">Place Bet</button>
+        <label for="amount">Wager Amount:</label>
+        <input type="number" id="amount" name="amount" required oninput="calculateWinnings()">
+        <p>Projected Winnings: <span id="projected-winnings"></span></p>
+        <button type="submit">Make Wager</button>
     </form>
+
+<section id="leaderboard-section">
+    <h2>Gold Leaderboard</h2>
+    <table id="leaderboard-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Username</th>
+                <th>Gold</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Leaderboard data will be populated here -->
+        </tbody>
+    </table>
+</section>
+
 
 <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, addDoc } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCZyQhh1vnaRZjSoTktEAavXZZvo1F1bOo",
     authDomain: "the-arena-91895.firebaseapp.com",
@@ -46,38 +69,119 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-<script>
-function placeBet(matchId, odds) {
-  var userId = firebase.auth().currentUser.uid;
-  var amount = prompt('Enter the amount of credits to bet:');
-  var chosenCharacter = prompt('Enter the character you want to bet on (home/away):');
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const matchesSelect = document.getElementById('match');
+  const teamsSelect = document.getElementById('team');
+  const amountInput = document.getElementById('amount');
+  const projectedWinningsElement = document.getElementById('projected-winnings');
+  let matches = [];
 
-  // Validate the inputs (e.g., check that the amount is a valid number, chosenCharacter is 'home' or 'away', etc.)
+  // Populate username and credits
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      getDoc(doc(db, 'Users', user.uid))
+        .then((doc) => {
+          const userData = doc.data();
+          document.getElementById('username').textContent = userData.username;
+	  document.getElementById('admin').textContent = userData.admin;
+          document.getElementById('credits').textContent = userData.credits;
 
-  db.collection('Bets').add({
-    amount: Number(amount),
-    chosen_character: chosenCharacter,
-    match_id: matchId,
-    outcome: 'pending',
-    user_id: userId
-  })
-  .then(() => {
-    alert('Bet placed successfully!');
-  })
-  .catch((error) => {
-    alert('Error placing bet: ' + error.message);
+// Check if credits are zero
+        if (userData.credits === 0) {
+          const message = document.createElement('p');
+          message.textContent = 'Beg for more gold on X @pridendprophecy';
+          document.body.insertBefore(message, document.body.firstChild);
+     }   });
+    }
+  });
+
+ // Populate matches
+function populateMatches() {
+  // Get the current date and time in CST
+  const currentDateCST = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+  const currentDate = new Date(currentDateCST);
+
+  // Set the date one week from now in CST
+  const oneWeekFromNowCST = new Date(currentDate);
+  oneWeekFromNowCST.setDate(currentDate.getDate() + 7);
+
+  getDocs(collection(db, 'Matches')).then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
+      const match = doc.data();
+      const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time and add CST offset
+      const matchDateCST = new Date(matchDateTimeString);
+
+      // Include matches that are within a week from now and not in the past
+      if (matchDateCST > currentDate && matchDateCST <= oneWeekFromNowCST) {
+        match.id = doc.id; // Store the document ID
+        matches.push(match);
+        matchesSelect.innerHTML += `<option value="${doc.id}">${match.match_name}</option>`;
+      }
+    });
+    populateTeams(); // Populate teams for the selected match
   });
 }
-</script>
-<script>
-function placeBet(matchId, odds) {
-  // ... (existing code to gather bet details)
+
+
+
+  // Function to populate teams based on the selected match
+  window.populateTeams = function populateTeams() {
+    const selectedMatchId = matchesSelect.value;
+    const selectedMatch = matches.find(match => match.id === selectedMatchId);
+    if (selectedMatch) {
+      teamsSelect.innerHTML = `
+        <option value="home">${selectedMatch.home}</option>
+        <option value="away">${selectedMatch.away}</option>`;
+      calculateWinnings(); // Update projected winnings
+    }
+  };
+
+  // Function to calculate projected winnings
+  window.calculateWinnings = function calculateWinnings() {
+  const selectedMatch = matches.find(match => match.id === matchesSelect.value);
+  const selectedTeam = teamsSelect.value;
+  const betAmount = Number(amountInput.value);
+  const odds = Number(selectedMatch.odds);
+  let winnings = 0;
+
+  if (selectedTeam === 'home') {
+    winnings = odds < 0 ? (betAmount / (-odds / 100)) : (betAmount * (odds / 100));
+  } else {
+    winnings = odds > 0 ? (betAmount / (odds / 100)) : (betAmount * (-odds / 100));
+  }
+
+  // Add the original bet amount to the winnings
+  winnings += betAmount;
+
+  projectedWinningsElement.textContent = winnings.toFixed(2);
+};
+
+
+  populateMatches();
+
+  
+
+// Handle form submission
+document.getElementById('bet-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const matchId = matchesSelect.value;
+  const team = teamsSelect.value;
+  const amount = Number(amountInput.value);
+  const selectedMatch = matches.find(match => match.id === matchesSelect.value);
+  const odds = Number(selectedMatch.odds);
+  let winnings = 0;
+
+  if (team === 'home') {
+    winnings = odds < 0 ? (amount / (-odds / 100)) : (amount * (odds / 100));
+  } else {
+    winnings = odds > 0 ? (amount / (odds / 100)) : (amount * (-odds / 100));
+  }
 
   // Start a Firestore transaction to update the user's credits and add the bet
-  db.runTransaction((transaction) => {
-    const userRef = db.collection('Users').doc(userId);
+  runTransaction(db, (transaction) => {
+    const userRef = doc(db, 'Users', auth.currentUser.uid);
     return transaction.get(userRef).then((userDoc) => {
       const user = userDoc.data();
       const newCredits = user.credits - amount;
@@ -91,23 +195,56 @@ function placeBet(matchId, odds) {
       // Update the user's credits
       transaction.update(userRef, { credits: newCredits });
 
-      // Add the bet to the "Bets" collection
-      return db.collection('Bets').add({
-        amount: Number(amount),
-        chosen_character: chosenCharacter,
+      // Add the bet to the "Bets" collection, including the projected winnings
+      return addDoc(collection(db, 'Bets'), {
+        amount: amount,
+        chosen_character: team,
         match_id: matchId,
         outcome: 'pending',
-        user_id: userId
+        user_id: auth.currentUser.uid,
+        projected_winnings: winnings.toFixed(2) // Store projected winnings
       });
     });
   })
   .then(() => {
     alert('Bet placed successfully!');
+    location.reload(); // Refresh the page to show updated credits and clear bet details
   })
   .catch((error) => {
     alert('Error placing bet: ' + error.message);
   });
+});
+
+
+// Function to load the leaderboard
+function loadLeaderboard() {
+  const leaderboardTableBody = document.getElementById('leaderboard-table').querySelector('tbody');
+  leaderboardTableBody.innerHTML = ''; // Clear existing leaderboard
+
+  // Query the "Users" collection, ordered by credits in descending order, and limit to 10 results
+  getDocs(collection(db, 'Users'), { orderBy: ['credits', 'desc'], limit: 10 })
+    .then((querySnapshot) => {
+      let rank = 1; // Initialize rank counter
+      querySnapshot.forEach((doc) => {
+        const user = doc.data();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${rank}</td>
+          <td>${user.username}</td>
+          <td>${user.credits}</td>`;
+        leaderboardTableBody.appendChild(row);
+        rank++; // Increment rank
+      });
+    })
+    .catch((error) => {
+      console.error('Error loading leaderboard: ', error);
+    });
 }
+
+// Load the leaderboard when the page loads
+loadLeaderboard();
+
+
 
 </script>
 </body>

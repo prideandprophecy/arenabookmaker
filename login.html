@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>The Bookmaker: Login</title>
+<link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
     <h1>Login</h1>
@@ -18,16 +20,18 @@
         <input type="password" id="password" name="password" required>
         <button type="submit">Login</button>
     </form>
+<div id="additional-options">
+        <p><a href="registration.html">New Users Register Here</a></p>
+        <p>Forgot your password? Tweet <a href="https://twitter.com/pridendprophecy" target="_blank">@pridendprophecy</a> or email <a href="mailto:everywordteennews@gmail.com">everywordteennews@gmail.com</a> to request a password reset via email.</p>
+    </div>
 
 <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
+  import { getFirestore, query, collection, where, getDocs } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCZyQhh1vnaRZjSoTktEAavXZZvo1F1bOo",
     authDomain: "the-arena-91895.firebaseapp.com",
@@ -40,25 +44,37 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-<script>
-document.getElementById('login-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  var username = document.getElementById('username').value;
-  var password = document.getElementById('password').value;
-  var email = username + '@example.com'; // Create a dummy email using the username
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      // Login successful
-      alert('Login successful!');
-    })
-    .catch((error) => {
-      // Handle errors
-      alert('Error: ' + error.message);
-    });
-});
+  document.getElementById('login-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var username = document.getElementById('username').value;
+    var password = document.getElementById('password').value;
+
+    // Query the Firestore database to find the user's email based on their username
+    getDocs(query(collection(db, 'Users'), where('username', '==', username)))
+      .then((querySnapshot) => {
+        if (querySnapshot.empty) {
+          alert('No user found with that username.');
+          return;
+        }
+
+        // Assuming usernames are unique, there should be only one matching document
+        var userDoc = querySnapshot.docs[0];
+        var email = userDoc.data().email || username + '@example.com'; // Retrieve email or use dummy email
+
+        return signInWithEmailAndPassword(auth, email, password);
+      })
+      .then((userCredential) => {
+        // Login successful
+        window.location.href = 'bets.html'; // Redirect to the account page
+      })
+      .catch((error) => {
+        // Handle errors
+        alert('Error: ' + error.message);
+      });
+  });
 </script>
 </body>
 </html>

@@ -1,70 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Account</title>
+    <title>The Bookmaker: Admin Tools</title>
+<link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js"></script>
+
+
+
 </head>
 <body>
-    <h1>Account Management</h1>
+    <h1>Administration</h1>
     <p>Username: <span id="username"></span></p>
-    <p>Credits: <span id="credits"></span></p>
-    <!-- Add more account management options as needed -->
+    
 
-const db = firebase.firestore();
-const matchesList = document.getElementById('matches-list');
+<!-- Section for adding credits to users -->
+<section id="credits-section">
+    <h2>Add Gold to User</h2>
+    <form id="add-credits-form">
+        <select id="user-select"></select>
+        <input type="number" id="credits" placeholder="Gold to Add">
+        <button type="submit">Add Gold</button>
+    </form>
+</section>
 
-// Retrieve matches and display them
-db.collection('Matches').get().then((querySnapshot) => {
-  querySnapshot.forEach((doc) => {
-    const match = doc.data();
-    matchesList.innerHTML += `
-      <div>
-        <h3>${match.match_name}</h3>
-        <p>${match.home} vs ${match.away}</p>
-        <p>Status: ${match.status}</p>
-        <button onclick="updateOutcome('${doc.id}', 'win')">Mark as Win</button>
-        <button onclick="updateOutcome('${doc.id}', 'lose')">Mark as Lose</button>
-      </div>`;
-  });
-});
 
-// Function to update match outcome and handle bets
-function updateOutcome(matchId, outcome) {
-  // Update the match's status to "finished"
-  db.collection('Matches').doc(matchId).update({ status: 'finished' })
-    .then(() => {
-      // Retrieve bets for this match
-      db.collection('Bets').where('match_id', '==', matchId).get()
-        .then((querySnapshot) => {
-          querySnapshot.forEach((betDoc) => {
-            const bet = betDoc.data();
-            // Determine the outcome and update the user's credits
-            // ...
+    <!-- Section for adding matches -->
+<section id="listing-section">
+    <h2>New Matches</h2>
+    <form id="add-match-form">
+      <input type="text" id="home" placeholder="Home Character">
+      <input type="text" id="away" placeholder="Away Character">
+      <input type="text" id="match_name" placeholder="Match Title">
+      <input type="number" id="odds" placeholder="Away Odds">
+      <input type="text" id="status" placeholder="Status">
+      <input type="date" id="match_date" placeholder="Date">
+      <input type="time" id="match_time" placeholder="Time">
 
-            // Update the bet's outcome field
-            betDoc.ref.update({ outcome: outcome });
-          });
-        });
-    })
-    .catch((error) => {
-      alert('Error updating outcome: ' + error.message);
-    });
-}
+      <button type="submit">Add Match</button>
+    </form>
+</section>
+
+
+    <!-- Section for displaying matches -->
+    <section id="matches-section">
+        <h2>Matches</h2>
+        <div id="matches-list"></div>
+    </section>
 
 <script type="module">
   // Import the functions you need from the SDKs you need
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, addDoc, runTransaction, doc, updateDoc, query, where, getDocs as getDocsModular, getDoc } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
+
+
+
+
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCZyQhh1vnaRZjSoTktEAavXZZvo1F1bOo",
     authDomain: "the-arena-91895.firebaseapp.com",
@@ -75,46 +75,206 @@ function updateOutcome(matchId, outcome) {
     measurementId: "G-MB4NN6YP02"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-<script>
-const userId = firebase.auth().currentUser.uid;
-const userCredits = document.getElementById('credits');
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-firebase.firestore().collection('Users').doc(userId).get()
-  .then((doc) => {
-    const user = doc.data();
-    userCredits.textContent = user.credits;
-  })
-  .catch((error) => {
-    alert('Error retrieving credits: ' + error.message);
+// Check if the user is an admin
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const userDoc = await getDoc(doc(db, 'Users', user.uid));
+      const userData = userDoc.data();
+      if (userData.admin !== 'admin') {
+        // Redirect to another page or display an error message
+        alert('Access denied. You must be an admin to view this page.');
+        window.location.href = 'login.html'; // Redirect to login or another appropriate page
+        return;
+      }
+      // Continue with admin functionality
+      document.getElementById('username').textContent = userData.username;
+      
+      // ... rest of the code ...
+    } else {
+      // Redirect to login or another appropriate page if the user is not logged in
+      window.location.href = 'login.html';
+    }
   });
-</script>
-<script>
-document.getElementById('add-match-form').addEventListener('submit', function(e) {
+
+const matchesList = document.getElementById('matches-list');
+
+
+
+
+// Retrieve matches and display them
+async function loadMatches() {
+  matchesList.innerHTML = ''; // Clear existing matches
+  const querySnapshot = await getDocs(collection(db, 'Matches'));
+  querySnapshot.forEach((doc) => {
+    const match = doc.data();
+    if (match.status !== "finished") { // Exclude matches with status "finished"
+      const matchDiv = document.createElement('div');
+matchDiv.innerHTML = `
+  <h3>${match.match_name}</h3>
+  <p>${match.away} visits ${match.home}</p>
+  <p>Date: ${match.date} Time: ${match.time}</p>
+  <p>Status: ${match.status}</p>`;
+
+      const winButton = document.createElement('button');
+      winButton.textContent = 'Away Win';
+      winButton.addEventListener('click', () => {
+        if (window.confirm('Are you sure you want to mark this match as an Away Win? This will trigger bet payouts.')) {
+          updateOutcome(doc.id, 'win', 'away');
+        }
+      });
+      const loseButton = document.createElement('button');
+      loseButton.textContent = 'Home Win';
+      loseButton.addEventListener('click', () => {
+        if (window.confirm('Are you sure you want to mark this match as a Home Win? This will trigger bet payouts.')) {
+          updateOutcome(doc.id, 'lose', 'home');
+        }
+      });
+      matchDiv.appendChild(winButton);
+      matchDiv.appendChild(loseButton);
+      matchesList.appendChild(matchDiv);
+    }
+  });
+}
+
+
+
+// Function to update match outcome and handle bets
+async function updateOutcome(matchId, result, Winner) {
+  try {
+    await updateDoc(doc(db, 'Matches', matchId), { status: 'finished', Winner: Winner });
+
+    const betsQuery = query(collection(db, 'Bets'), where('match_id', '==', matchId));
+    const querySnapshot = await getDocsModular(betsQuery);
+
+    for (const betDoc of querySnapshot.docs) {
+      const bet = betDoc.data();
+      let outcome = 'loss';
+
+      if (bet.chosen_character === Winner) {
+        outcome = 'win';
+      }
+
+      // Update the bet's outcome field
+      await updateDoc(doc(db, 'Bets', betDoc.id), { outcome: outcome });
+
+      if (outcome === 'win') {
+        const userRef = doc(db, 'Users', bet.user_id);
+
+        // Start a Firestore transaction to update the user's credits
+        await runTransaction(db, async (transaction) => {
+          const userSnapshot = await transaction.get(userRef);
+          const user = userSnapshot.data();
+          const currentCredits = parseFloat(user.credits);
+          const projectedWinnings = parseFloat(bet.projected_winnings);
+          const newCredits = currentCredits + projectedWinnings;
+
+          // Update the user's credits
+          transaction.update(userRef, { credits: newCredits });
+        });
+      }
+    }
+
+    window.location.reload();
+  } catch (error) {
+    alert('Error updating outcome: ' + error.message);
+    console.error(error);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+// Function to add a new match
+document.getElementById('add-match-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const home = document.getElementById('home').value;
   const away = document.getElementById('away').value;
   const matchName = document.getElementById('match_name').value;
   const odds = document.getElementById('odds').value;
   const status = document.getElementById('status').value;
+  const matchDate = document.getElementById('match_date').value;
+  const matchTime = document.getElementById('match_time').value;
 
-  db.collection('Matches').add({
-    home: home,
-    away: away,
-    match_name: matchName,
-    odds: Number(odds),
-    status: status
-  })
-  .then(() => {
+  try {
+    await addDoc(collection(db, 'Matches'), {
+      home: home,
+      away: away,
+      match_name: matchName,
+      odds: Number(odds),
+      status: status,
+      date: matchDate,
+      time: matchTime
+    });
     alert('Match added successfully!');
-  })
-  .catch((error) => {
+
+    // Refresh the page
+    window.location.reload();
+  } catch (error) {
     alert('Error adding match: ' + error.message);
-  });
+  }
 });
+
+
+// Load matches when the page loads
+loadMatches();
+
+// ...
+
+// Function to load users into the select dropdown
+async function loadUsers() {
+  const userSelect = document.getElementById('user-select');
+  userSelect.innerHTML = ''; // Clear existing options
+  const querySnapshot = await getDocs(collection(db, 'Users'));
+  querySnapshot.forEach((doc) => {
+    const user = doc.data();
+    const option = document.createElement('option');
+    option.value = doc.id;
+    option.textContent = user.username + ' (' + user.credits + ' credits)';
+    userSelect.appendChild(option);
+  });
+}
+
+// Function to add credits to a user
+document.getElementById('add-credits-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const userId = document.getElementById('user-select').value;
+  const creditsToAdd = Number(document.getElementById('credits').value);
+
+  try {
+    const userRef = doc(db, 'Users', userId);
+    const userSnapshot = await getDoc(userRef);
+    const user = userSnapshot.data();
+    const currentCredits = Number(user.credits); // Convert credits to a number
+    const newCredits = currentCredits + creditsToAdd;
+    await updateDoc(userRef, { credits: newCredits });
+    alert('Credits added successfully!');
+    loadUsers(); // Reload users to display the updated credits
+  } catch (error) {
+    alert('Error adding credits: ' + error.message);
+  }
+});
+
+
+// Load users when the page loads
+loadUsers();
+
+// ...
+
+
 </script>
+
+
+ 
+    
 </body>
 </html>

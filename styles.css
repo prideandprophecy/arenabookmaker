@@ -1,0 +1,109 @@
+/* General Styles */
+body {
+  font-family: 'Georgia', serif; /* A more classic font */
+  background-color: #f4e9dc; /* Parchment-like background */
+  color: #5a4526; /* Darker text color for contrast */
+}
+
+h1, h2, h3 {
+  font-family: 'Cinzel', serif; /* A font that resembles medieval scripts */
+  color: #3a2a16; /* Darker headings */
+}
+
+/* Form Styles */
+form {
+  background: #e6d5b8; /* Lighter background for forms */
+  padding: 20px;
+  border: 2px solid #a89f91; /* Border to give a paper-like effect */
+  border-radius: 10px; /* Rounded corners */
+}
+
+label, input, select, button {
+  font-family: 'Georgia', serif; /* Consistent font with the body */
+}
+
+button {
+  background-color: #a89f91; /* Button color */
+  color: #f4e9dc; /* Text color */
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #8c8274; /* Darker color on hover */
+}
+
+/* Administration Section */
+#credits-section, #listing-section, #matches-section {
+  margin: 20px 0;
+  border: 1px solid #a89f91; /* Border to separate sections */
+}
+
+/* Matches List */
+#matches-list > div {
+  background: #e6d5b8; /* Background for each match */
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #a89f91; /* Border for each match */
+  border-radius: 5px; /* Rounded corners */
+}
+
+/* Dropdown Styles */
+.dropdown-content {
+  background-color: #e6d5b8; /* Background for dropdown */
+  border: 1px solid #a89f91; /* Border for dropdown */
+}
+
+/* Link to Google Fonts for the Cinzel font */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel&display=swap');
+
+/* Leaderboard Section */
+#leaderboard-section {
+  margin: 20px;
+  padding: 20px;
+  background-color: #F7F0F0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+#leaderboard-section h2 {
+  text-align: center;
+  color: #333;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+#leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#leaderboard-table thead th {
+  background-color: #ddd;
+  color: #333;
+  padding: 10px;
+  text-align: left;
+  font-size: 18px;
+  border-bottom: 2px solid #333;
+}
+
+#leaderboard-table tbody tr {
+  transition: background-color 0.3s;
+}
+
+#leaderboard-table tbody tr:hover {
+  background-color: #eee;
+}
+
+#leaderboard-table tbody td {
+  padding: 10px;
+  font-size: 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+#leaderboard-table tbody tr:last-child td {
+  border-bottom: none;
+}

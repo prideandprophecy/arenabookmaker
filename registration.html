@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js"></script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration</title>
+    <title>The Bookmaker: Registration</title>
+<link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
     <h1>Register</h1>
@@ -16,19 +18,22 @@
         <input type="text" id="username" name="username" required>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required>
-        
+        <label for="email">Email (optional, for password recovery):</label>
+        <input type="email" id="email" name="email">
         <button type="submit">Register</button>
     </form>
+<div id="additional-options">
+        <p><a href="login.html">Returning Users Login Here</a></p>
+        
+    </div>
 
 <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, query, collection, where, getDocs } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCZyQhh1vnaRZjSoTktEAavXZZvo1F1bOo",
     authDomain: "the-arena-91895.firebaseapp.com",
@@ -41,33 +46,48 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-<script>
-document.getElementById('registration-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  var username = document.getElementById('username').value;
-  var password = document.getElementById('password').value;
-  var email = username + '@example.com'; // Create a dummy email using the username
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-  firebase.auth().createUserWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      // Registration successful
-      var user = userCredential.user;
-      // Create a document in the "Users" collection with the initial credits
-      firebase.firestore().collection('Users').doc(user.uid).set({
-        username: username,
-        credits: 1000,
-        password: password // 
+  document.getElementById('registration-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var username = document.getElementById('username').value;
+    var password = document.getElementById('password').value;
+    var emailInput = document.getElementById('email').value;
+    var email = emailInput ? emailInput : username + '@example.com'; // Use provided email or create a dummy email
+
+    // Check for duplicate usernames
+    getDocs(query(collection(db, 'Users'), where('username', '==', username)))
+      .then((querySnapshot) => {
+        if (!querySnapshot.empty) {
+          alert('Username already exists. Please choose a different username.');
+          return Promise.reject('Username already exists'); // Reject the promise to stop further execution
+        }
+
+        return createUserWithEmailAndPassword(auth, email, password);
+      })
+      .then((userCredential) => {
+        if (!userCredential) return; // Exit if username already exists
+
+        // Registration successful
+        var user = userCredential.user;
+        // Create a document in the "Users" collection with the initial credits
+        return setDoc(doc(db, 'Users', user.uid), {
+          username: username,
+          credits: 1000,
+          email: emailInput // Store email if provided
+        });
+      })
+      .then(() => {
+        alert('Registration successful!');
+        window.location.href = 'login.html'; // Redirect to the login page
+      })
+      .catch((error) => {
+        // Handle errors
+        if (typeof error === 'string') return; // Handle custom rejection
+        alert('Error: ' + error.message);
       });
-      alert('Registration successful!');
-    })
-    .catch((error) => {
-      // Handle errors
-      alert('Error: ' + error.message);
-    });
-});
-
+  });
 </script>
 </body>
 </html>
