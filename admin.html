@@ -35,7 +35,7 @@
       <input type="text" id="home" placeholder="Home Character">
       <input type="text" id="away" placeholder="Away Character">
       <input type="text" id="match_name" placeholder="Match Title">
-      <input type="number" id="odds" placeholder="Away Odds">
+      <input type="number" id="odds" placeholder="Home Odds">
       <input type="text" id="status" placeholder="Status">
       <input type="date" id="match_date" placeholder="Date">
       <input type="time" id="match_time" placeholder="Time">
@@ -109,15 +109,19 @@ const matchesList = document.getElementById('matches-list');
 async function loadMatches() {
   matchesList.innerHTML = ''; // Clear existing matches
   const querySnapshot = await getDocs(collection(db, 'Matches'));
+  const now = new Date(); // Current date and time
+
   querySnapshot.forEach((doc) => {
     const match = doc.data();
-    if (match.status !== "finished") { // Exclude matches with status "finished"
+    const matchDateTime = new Date(`${match.date}T${match.time}`); // Match date and time
+
+    if (match.status !== "finished" && matchDateTime <= now) { // Exclude matches with status "finished" and future matches
       const matchDiv = document.createElement('div');
-matchDiv.innerHTML = `
-  <h3>${match.match_name}</h3>
-  <p>${match.away} visits ${match.home}</p>
-  <p>Date: ${match.date} Time: ${match.time}</p>
-  <p>Status: ${match.status}</p>`;
+      matchDiv.innerHTML = `
+        <h3>${match.match_name}</h3>
+        <p>${match.away} visits ${match.home}</p>
+        <p>Date: ${match.date} Time: ${match.time}</p>
+        <p>Status: ${match.status}</p>`;
 
       const winButton = document.createElement('button');
       winButton.textContent = 'Away Win';
