@@ -83,42 +83,35 @@
   });
 
 // Function to load upcoming matches
-  async function loadUpcomingMatches() {
-    const upcomingMatchesList = document.getElementById('upcoming-matches-list');
-    upcomingMatchesList.innerHTML = ''; // Clear existing matches
+async function loadUpcomingMatches() {
+  const upcomingMatchesList = document.getElementById('upcoming-matches-list');
+  upcomingMatchesList.innerHTML = ''; // Clear existing matches
 
-    const now = new Date();
-    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+  // Get the current date and time
+  const currentDate = new Date();
 
-    const querySnapshot = await getDocs(collection(db, 'Matches'));
-    const matches = [];
-    querySnapshot.forEach((doc) => {
-      const match = doc.data();
-      const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time
-      const matchDate = new Date(matchDateTimeString);
+  // Set the date 24 hours from now
+  const oneDayFromNow = new Date(currentDate);
+  oneDayFromNow.setDate(currentDate.getDate() + 1);
 
-      // Check if the match is within the next 24 hours
-      if (matchDate >= now && matchDate <= next24Hours) {
-        match.dateObj = matchDate; // Store the date object
-        matches.push(match);
-      }
-    });
+  // Convert the dates to the format used in your Firestore collection
+  const currentDateStr = currentDate.toISOString().split('T')[0];
+  const oneDayFromNowStr = oneDayFromNow.toISOString().split('T')[0];
 
-    // Sort the matches by date and time, from soonest to latest
-    matches.sort((a, b) => a.dateObj - b.dateObj);
+  // Query the "Matches" collection for matches within the next 24 hours
+  const querySnapshot = await getDocs(query(collection(db, 'Matches'), where('date', '>=', currentDateStr), where('date', '<=', oneDayFromNowStr)));
 
-    // Populate the upcoming matches list with the sorted matches
-    matches.forEach(match => {
-      const matchDiv = document.createElement('div');
-      matchDiv.innerHTML = `
-        <p>${match.match_name}</p>`;
+  querySnapshot.forEach((doc) => {
+    const match = doc.data();
+    const matchDiv = document.createElement('div');
+    matchDiv.innerHTML = `<p>${match.match_name}</p>`;
+    upcomingMatchesList.appendChild(matchDiv);
+  });
+}
 
-      upcomingMatchesList.appendChild(matchDiv);
-    });
-  }
+// Load upcoming matches when the page loads
+loadUpcomingMatches();
 
-  // Load upcoming matches when the page loads
-  loadUpcomingMatches();
 </script>
 </body>
 </html>

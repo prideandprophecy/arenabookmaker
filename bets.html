@@ -102,35 +102,42 @@ function populateMatches() {
   const currentDateCST = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
   const currentDate = new Date(currentDateCST);
 
-  // Set the date one week from now in CST
-  const oneWeekFromNowCST = new Date(currentDate);
-  oneWeekFromNowCST.setDate(currentDate.getDate() + 1);
+  // Set the date 24 hours from now in CST
+  const oneDayFromNowCST = new Date(currentDate);
+  oneDayFromNowCST.setDate(currentDate.getDate() + 1);
 
-  getDocs(collection(db, 'Matches')).then((querySnapshot) => {
-    querySnapshot.forEach((doc) => {
-      const match = doc.data();
-      const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time and add CST offset
-      const matchDateCST = new Date(matchDateTimeString);
+  // Convert the dates to the format used in your Firestore collection
+  const currentDateStr = currentDate.toISOString().split('T')[0];
+  const oneDayFromNowStr = oneDayFromNowCST.toISOString().split('T')[0];
 
-      // Include matches that are within a week from now and not in the past
-      if (matchDateCST > currentDate && matchDateCST <= oneWeekFromNowCST) {
-        match.id = doc.id; // Store the document ID
-        match.dateCST = matchDateCST; // Store the date in CST
-        matches.push(match);
-      }
+  // Query the "Matches" collection for matches within the next 24 hours
+  getDocs(collection(db, 'Matches'), { where: ['date', '>=', currentDateStr], where: ['date', '<=', oneDayFromNowStr] })
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        const match = doc.data();
+        const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time
+        const matchDateCST = new Date(matchDateTimeString);
+
+        // Include matches that are not in the past
+        if (matchDateCST > currentDate) {
+          match.id = doc.id; // Store the document ID
+          match.dateCST = matchDateCST; // Store the date in CST
+          matches.push(match);
+        }
+      });
+
+      // Sort the matches by date and time, from most recent to furthest away
+      matches.sort((a, b) => a.dateCST - b.dateCST);
+
+      // Populate the dropdown with the sorted matches
+      matches.forEach(match => {
+        matchesSelect.innerHTML += `<option value="${match.id}">${match.match_name}</option>`;
+      });
+
+      populateTeams(); // Populate teams for the selected match
     });
-
-    // Sort the matches by date and time, from most recent to furthest away
-    matches.sort((a, b) => a.dateCST - b.dateCST);
-
-    // Populate the dropdown with the sorted matches
-    matches.forEach(match => {
-      matchesSelect.innerHTML += `<option value="${match.id}">${match.match_name}</option>`;
-    });
-
-    populateTeams(); // Populate teams for the selected match
-  });
 }
+
 
 
 
