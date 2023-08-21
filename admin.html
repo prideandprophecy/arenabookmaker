@@ -113,7 +113,8 @@ async function loadMatches() {
 
   querySnapshot.forEach((doc) => {
     const match = doc.data();
-    const matchDateTime = new Date(`${match.date}T${match.time}`); // Match date and time
+    const matchDateTime = new Date(`${match.date}T${match.time}-05:00`); // Match date and time in CST
+
 
     if (match.status !== "finished" && matchDateTime <= now) { // Exclude matches with status "finished" and future matches
       const matchDiv = document.createElement('div');
