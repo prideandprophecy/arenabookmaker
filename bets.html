@@ -53,8 +53,9 @@
 <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, addDoc } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore.js";
+
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -111,31 +112,38 @@ function populateMatches() {
   const oneDayFromNowStr = oneDayFromNowCST.toISOString().split('T')[0];
 
   // Query the "Matches" collection for matches within the next 24 hours
-  getDocs(collection(db, 'Matches'), { where: ['date', '>=', currentDateStr], where: ['date', '<=', oneDayFromNowStr] })
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const match = doc.data();
-        const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time
-        const matchDateCST = new Date(matchDateTimeString);
+const matchesQuery = query(
+  collection(db, 'Matches'),
+  where('date', '>=', currentDateStr),
+  where('date', '<=', oneDayFromNowStr)
+);
 
-        // Include matches that are not in the past
-        if (matchDateCST > currentDate) {
-          match.id = doc.id; // Store the document ID
-          match.dateCST = matchDateCST; // Store the date in CST
-          matches.push(match);
-        }
-      });
+getDocs(matchesQuery)
+  .then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
+      const match = doc.data();
+      const matchDateTimeString = match.date + 'T' + match.time; // Combine date and time
+      const matchDateCST = new Date(matchDateTimeString);
 
-      // Sort the matches by date and time, from most recent to furthest away
-      matches.sort((a, b) => a.dateCST - b.dateCST);
-
-      // Populate the dropdown with the sorted matches
-      matches.forEach(match => {
-        matchesSelect.innerHTML += `<option value="${match.id}">${match.match_name}</option>`;
-      });
-
-      populateTeams(); // Populate teams for the selected match
+      // Include matches that are not in the past
+      if (matchDateCST > currentDate) {
+        match.id = doc.id; // Store the document ID
+        match.dateCST = matchDateCST; // Store the date in CST
+        matches.push(match);
+      }
     });
+
+    // Sort the matches by date and time, from most recent to furthest away
+    matches.sort((a, b) => a.dateCST - b.dateCST);
+
+    // Populate the dropdown with the sorted matches
+    matches.forEach(match => {
+      matchesSelect.innerHTML += `<option value="${match.id}">${match.match_name}</option>`;
+    });
+
+    populateTeams(); // Populate teams for the selected match
+  });
+
 }
 
 

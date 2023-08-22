@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "csv-parse": "^5.4.0",
+    "firebase-admin": "^11.10.1",
+    "papaparse": "^5.4.1"
+  }
+}
