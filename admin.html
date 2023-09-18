@@ -48,6 +48,8 @@
     <!-- Section for displaying matches -->
     <section id="matches-section">
         <h2>Matches</h2>
+<button id="updateAllMatches">Update All Matches</button>
+
         <div id="matches-list"></div>
     </section>
 
@@ -147,48 +149,64 @@ async function loadMatches() {
 
 
 
-// Function to update match outcome and handle bets
-async function updateOutcome(matchId, result, Winner) {
+// Function to update match outcome and handle bets for all matches
+async function updateAllOutcomes() {
   try {
-    await updateDoc(doc(db, 'Matches', matchId), { status: 'finished', Winner: Winner });
+    const matchesSnapshot = await getDocs(collection(db, 'Matches').where('status', '!=', 'finished'));
+    const now = new Date(); // Current date and time
 
-    const betsQuery = query(collection(db, 'Bets'), where('match_id', '==', matchId));
-    const querySnapshot = await getDocsModular(betsQuery);
+    for (const matchDoc of matchesSnapshot.docs) {
+      const match = matchDoc.data();
+      const matchDateTime = new Date(`${match.date}T${match.time}-05:00`); // Match date and time in CST
 
-    for (const betDoc of querySnapshot.docs) {
-      const bet = betDoc.data();
-      let outcome = 'loss';
+      if (matchDateTime <= now) {
+        const Winner = match.predeterminedWinner; // Assuming you have a field named 'predeterminedWinner' in your match document
 
-      if (bet.chosen_character === Winner) {
-        outcome = 'win';
-      }
+        await updateDoc(doc(db, 'Matches', matchDoc.id), { status: 'finished', Winner: Winner });
 
-      // Update the bet's outcome field
-      await updateDoc(doc(db, 'Bets', betDoc.id), { outcome: outcome });
+        const betsQuery = query(collection(db, 'Bets'), where('match_id', '==', matchDoc.id));
+        const betSnapshot = await getDocsModular(betsQuery);
 
-      if (outcome === 'win') {
-        const userRef = doc(db, 'Users', bet.user_id);
+        for (const betDoc of betSnapshot.docs) {
+          const bet = betDoc.data();
+          let outcome = 'loss';
 
-        // Start a Firestore transaction to update the user's credits
-        await runTransaction(db, async (transaction) => {
-          const userSnapshot = await transaction.get(userRef);
-          const user = userSnapshot.data();
-          const currentCredits = parseFloat(user.credits);
-          const projectedWinnings = parseFloat(bet.projected_winnings);
-          const newCredits = currentCredits + projectedWinnings;
+          if (bet.chosen_character === Winner) {
+            outcome = 'win';
+          }
 
-          // Update the user's credits
-          transaction.update(userRef, { credits: newCredits });
-        });
+          // Update the bet's outcome field
+          await updateDoc(doc(db, 'Bets', betDoc.id), { outcome: outcome });
+
+          if (outcome === 'win') {
+            const userRef = doc(db, 'Users', bet.user_id);
+
+            // Start a Firestore transaction to update the user's credits
+            await runTransaction(db, async (transaction) => {
+              const userSnapshot = await transaction.get(userRef);
+              const user = userSnapshot.data();
+              const currentCredits = parseFloat(user.credits);
+              const projectedWinnings = parseFloat(bet.projected_winnings);
+              const newCredits = currentCredits + projectedWinnings;
+
+              // Update the user's credits
+              transaction.update(userRef, { credits: newCredits });
+            });
+          }
+        }
       }
     }
 
     window.location.reload();
   } catch (error) {
-    alert('Error updating outcome: ' + error.message);
+    alert('Error updating outcomes: ' + error.message);
     console.error(error);
   }
 }
+
+// Attach the function to the button
+document.getElementById('updateAllMatches').addEventListener('click', updateAllOutcomes);
+
 
 
 
