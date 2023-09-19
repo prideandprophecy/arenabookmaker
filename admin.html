@@ -152,7 +152,8 @@ async function loadMatches() {
 // Function to update match outcome and handle bets for all matches
 async function updateAllOutcomes() {
   try {
-    const matchesSnapshot = await getDocs(collection(db, 'Matches').where('status', '!=', 'finished'));
+    const matchesQuery = query(collection(db, 'Matches'), where('status', '!=', 'finished'));
+    const matchesSnapshot = await getDocs(matchesQuery);
     const now = new Date(); // Current date and time
 
     for (const matchDoc of matchesSnapshot.docs) {
