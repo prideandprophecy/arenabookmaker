@@ -196,13 +196,15 @@ document.getElementById('bet-form').addEventListener('submit', function(e) {
   const amount = Number(amountInput.value);
   const selectedMatch = matches.find(match => match.id === matchesSelect.value);
   const odds = Number(selectedMatch.odds);
-  let winnings = 0;
+  let profit = 0;
 
-  if (team === 'home') {
-    winnings = odds < 0 ? (amount / (-odds / 100)) : (amount * (odds / 100));
-  } else {
-    winnings = odds > 0 ? (amount / (odds / 100)) : (amount * (-odds / 100));
-  }
+if (team === 'home') {
+  profit = odds < 0 ? (amount / (-odds / 100)) : (amount * (odds / 100));
+} else {
+  profit = odds > 0 ? (amount / (odds / 100)) : (amount * (-odds / 100));
+}
+
+const totalProjectedWinnings = amount + profit;
 
   // Start a Firestore transaction to update the user's credits and add the bet
   runTransaction(db, (transaction) => {
@@ -227,7 +229,7 @@ document.getElementById('bet-form').addEventListener('submit', function(e) {
         match_id: matchId,
         outcome: 'pending',
         user_id: auth.currentUser.uid,
-        projected_winnings: winnings.toFixed(2) // Store projected winnings
+        projected_winnings: totalProjectedWinnings.toFixed(2)
       });
     });
   })
